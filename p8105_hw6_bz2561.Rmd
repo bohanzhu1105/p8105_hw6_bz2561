@@ -1,0 +1,110 @@
+---
+title: "HW5"
+author: "Bohan Zhu"
+date: "2025-11-18"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r,include=FALSE}
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%",
+  fig.retina = 2,
+  dpi = 320
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+## Problem 1
+
+```{r}
+homicides = 
+  read_csv("data/homicide-data.csv", 
+           na = c("NA",".","","Unknown")) |>
+  janitor::clean_names() 
+
+homicide_df = 
+  homicides |> 
+  mutate(
+    city_state = str_c(city, ", ", state),
+    status = ifelse(disposition == "Closed by arrest", 1, 0)
+  ) |> 
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
+    victim_race == "White" | victim_race == "Black"
+  )
+```
+
+```{r}
+baltimore_df <- homicide_df |> 
+  filter(city_state == "Baltimore, MD") |> 
+  select(status, victim_age, victim_race, victim_sex)
+```
+
+```{r}
+fit_logistic = 
+  baltimore_df |> 
+  glm(status ~ victim_age + victim_race + victim_sex, data = _, 
+      family = binomial())
+
+fit_logistic |> 
+  broom::tidy(conf.int = TRUE, exponentiate = TRUE) |> 
+  filter(term == "victim_sexMale") |> 
+  select(estimate, conf.low, conf.high) |> 
+  knitr::kable(digits = 3)
+```
+
+```{r}
+fit_city_glm = function(df) {
+  glm(status ~ victim_age + victim_race + victim_sex,
+      data = df, family = binomial())
+}
+
+city_or_df =
+  homicide_df |>
+  nest(data = -city_state) |> 
+  mutate(
+    fits = map(data, fit_city_glm),
+    results = map(fits, ~ broom::tidy(.x, conf.int = TRUE, exponentiate = TRUE))
+  ) |>
+  unnest(results) |>
+  filter(term == "victim_sexMale") |>
+  select(city_state, estimate, conf.low, conf.high)
+
+city_or_df
+```
+
+```{r}
+city_or_df |> 
+  mutate(
+    city_state = fct_reorder(city_state, estimate)
+    ) |>
+  ggplot(aes( x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme(axis.text.x = element_text(size = 5,angle = 90,hjust = 1)) +
+  coord_flip() +
+  ggtitle("Odds Ratio for Solving homicides among sex")
+```
+
+## Problem 2
+
+## Problem 3
