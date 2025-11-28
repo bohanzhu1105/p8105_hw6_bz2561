@@ -155,7 +155,7 @@ r2_dist |>
   summarize(
     ci_lower = quantile(r.squared, 0.025),
     ci_upper = quantile(r.squared, 0.975)
-  )
+  ) |> knitr::kable(digits = 3)
 ```
 
 Similarly, we can look at the distribution of $\frac{\hat{\beta_{1}}}{\hat{\beta_{2}}}$
@@ -183,7 +183,7 @@ coef_dist |>
   summarize(
     ci_lower = quantile(beta_ratio, 0.025),
     ci_upper = quantile(beta_ratio, 0.975)
-  )
+  ) |> knitr::kable(digits = 3)
 ```
 
 ## Problem 3
