@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE, tidy = TRUE)
 
 ```{r}
 library(tidyverse)
+library(p8105.datasets)
+library(modelr)
 ```
 
 ```{r,include=FALSE}
@@ -31,6 +33,10 @@ options(
 
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
+```
+
+```{r}
+set.seed(1)
 ```
 
 ## Problem 1
@@ -106,5 +112,79 @@ city_or_df |>
 ```
 
 ## Problem 2
+
+```{r}
+data("weather_df")
+
+weather_df |> 
+  select(tmax, tmin, prcp) |> 
+  drop_na()
+```
+
+```{r}
+weather_bootstrap_results = 
+  weather_df |> 
+  bootstrap(n = 5000) |> 
+  mutate(
+    df = map(strap, as_tibble),
+    fits = map(df, \(df) lm(tmax ~ tmin + prcp, data = df)),
+    results_r2 = map(fits, broom::glance),
+    results_coef = map(fits, broom::tidy)
+  ) |> 
+  select(.id, results_r2, results_coef)
+```
+
+First, let's look at the distribution of $r^2$. 
+
+```{r}
+r2_dist =
+  weather_bootstrap_results |> 
+  unnest(results_r2) |> 
+  select(.id, r.squared) 
+
+r2_dist |> 
+  ggplot(aes(x = r.squared)) +
+  geom_density() +
+  labs(title = "Bootstrap distribution of R^2",
+       x = "R^2")
+```
+
+Then, look at the confidence interval for $r^2$$
+
+```{r}
+r2_dist |> 
+  summarize(
+    ci_lower = quantile(r.squared, 0.025),
+    ci_upper = quantile(r.squared, 0.975)
+  )
+```
+
+Similarly, we can look at the distribution of $\frac{\hat{\beta_{1}}}{\hat{\beta_{2}}}$
+
+```{r}
+coef_dist =
+  weather_bootstrap_results |> 
+  unnest(results_coef) |> 
+  filter(term %in% c("tmin", "prcp")) |> 
+  select(.id, term, estimate) |> 
+  pivot_wider(names_from = term, values_from = estimate) |> 
+  mutate(beta_ratio = tmin / prcp)
+
+coef_dist |> 
+  ggplot(aes(x = beta_ratio)) +
+  geom_density() +
+  labs(title = "Bootstrap distribution of beta1 / beta2",
+       x = "beta1 / beta2")
+```
+
+We may also look at the confidence interval for $\frac{\hat{\beta_{1}}}{\hat{\beta_{2}}}$.
+
+```{r}
+coef_dist |> 
+  summarize(
+    ci_lower = quantile(beta_ratio, 0.025),
+    ci_upper = quantile(beta_ratio, 0.975)
+  )
+```
 
 ## Problem 3
