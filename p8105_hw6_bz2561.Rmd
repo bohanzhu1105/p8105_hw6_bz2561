@@ -194,6 +194,8 @@ coef_dist |>
 
 ## Problem 3
 
+Load the data, do some tidy, and we can see that there's no missing values.
+
 ```{r}
 birthweight_df = 
   read_csv("data/birthweight.csv",
@@ -290,7 +292,8 @@ cv_df |>
     names_prefix = "rmse_"
   ) |> 
   ggplot(aes(x = model, y = rmse,fill = model)) +
-  geom_violin()
+  geom_violin()+
+  ggtitle("Comparison of RMSE Across Models")
 ```
 
 Model 3 shows the lowest RMSE across the Monte-Carlo cross-validation replicates, indicating the best predictive performance. Model 2 performs moderately well, while Model 1 has the highest and most variable RMSE, suggesting weaker predictive ability. Overall, Model 3 provides the most accurate predictions of birthweight among the three models.
